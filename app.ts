@@ -1,4 +1,5 @@
 import ffmpeg from "ffmpeg";
+const videoshow = require("videoshow");
 import { Image } from "image-js";
 const { exec } = require("child_process");
 import fs, { readFileSync } from "fs";
@@ -34,7 +35,7 @@ try {
       video.fnExtractFrameToJPG(
         "./video-frames",
         {
-          frame_rate: 1,
+          frame_rate: 0.2,
           number: 60,
           file_name: "my_frame_%t_%s",
         },
@@ -125,14 +126,14 @@ function generateASCIIVideo() {
       console.log("Commands", commands);
       if (commands.length === 0) {
         console.log("All frames generated");
-        const concatCommand = `ffmpeg -framerate 15 -i ./video-image-frames/image_%04d.png -c:v libx264 -vf "fps=15" test.mp4`;
-        exec(concatCommand, (error: any) => {
-          if (error) {
-            console.error("Error concatenating frames to video:", error);
-          } else {
-            console.log(`Video saved, pls work`);
-          }
-        });
+        // const concatCommand = `ffmpeg -framerate 7 -i ./video-image-frames/image_%04d.png -c:v libx264 -vf "fps=7" test.mp4`;
+        // exec(concatCommand, (error: any) => {
+        //   if (error) {
+        //     console.error("Error concatenating frames to video:", error);
+        //   } else {
+        //     console.log(`Video saved, pls work`);
+        //   }
+        // });
         return;
       }
 

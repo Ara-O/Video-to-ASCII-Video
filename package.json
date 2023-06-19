@@ -12,6 +12,7 @@
     "@types/ffmpeg": "^1.0.4",
     "child_process": "^1.0.2",
     "ffmpeg": "^0.0.4",
-    "image-js": "^0.35.4"
+    "image-js": "^0.35.4",
+    "videoshow": "^0.1.12"
   }
 }
