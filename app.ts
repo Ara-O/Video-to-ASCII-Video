@@ -35,7 +35,7 @@ try {
         "./video-frames",
         {
           frame_rate: 1,
-          number: 5,
+          number: 60,
           file_name: "my_frame_%t_%s",
         },
         function (error, files) {
@@ -125,7 +125,7 @@ function generateASCIIVideo() {
       console.log("Commands", commands);
       if (commands.length === 0) {
         console.log("All frames generated");
-        const concatCommand = `ffmpeg -framerate 5 -i ./video-image-frames/image_%04d.png -c:v libx264 -vf "fps=5" test.mp4`;
+        const concatCommand = `ffmpeg -framerate 15 -i ./video-image-frames/image_%04d.png -c:v libx264 -vf "fps=15" test.mp4`;
         exec(concatCommand, (error: any) => {
           if (error) {
             console.error("Error concatenating frames to video:", error);
