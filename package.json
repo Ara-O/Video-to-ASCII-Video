@@ -10,6 +10,7 @@
   "license": "ISC",
   "dependencies": {
     "@types/ffmpeg": "^1.0.4",
-    "ffmpeg": "^0.0.4"
+    "ffmpeg": "^0.0.4",
+    "image-js": "^0.35.4"
   }
 }
