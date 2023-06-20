@@ -6,16 +6,13 @@
 // const path = require("path");
 import inquirer from "inquirer";
 import ffmpeg from "ffmpeg";
+import fs from "fs-extra";
 import chalk from "chalk";
 
 const log = console.log;
-
+const ORIGINAL_VIDEO_FRAMES_PATH = "original_video_frames";
 log(chalk.blueBright("Welcome to Video to ASCII Video!\n"));
-log(
-  chalk.white(
-    "Note: The video file can be dragged into the command line to extract its path\n"
-  )
-);
+log(chalk.white("Note: Use relative paths... Example -> ./duck.mp4\n"));
 
 let prompts = [
   {
@@ -25,19 +22,56 @@ let prompts = [
       return new Promise(async (resolve, reject) => {
         try {
           let sanitizedInput = input.replaceAll("'", "").replaceAll(`"`, "");
-          let videoData = await new ffmpeg(sanitizedInput);
-          resolve(videoData);
+
+          if (!sanitizedInput.includes(".mp4")) {
+            reject("Only accepts mp4 files are accepted");
+          }
+          resolve(sanitizedInput);
         } catch (err) {
-          reject(err.msg);
+          reject(err);
         }
       });
     },
   },
 ];
 
+async function generateVideoFrames(videoData) {
+  return new Promise((resolve, reject) => {
+    if (!fs.existsSync(ORIGINAL_VIDEO_FRAMES_PATH)) {
+      fs.mkdirSync(ORIGINAL_VIDEO_FRAMES_PATH);
+    } else {
+      fs.emptyDirSync(ORIGINAL_VIDEO_FRAMES_PATH);
+    }
+
+    log(chalk.yellow("Extracting frames from video..."));
+    videoData.fnExtractFrameToJPG(
+      ORIGINAL_VIDEO_FRAMES_PATH,
+      {
+        frame_rate: 60,
+        number: 300,
+        file_name: "frame_%t_%s",
+      },
+      function (error, files) {
+        if (error) {
+          log(chalk.redBright(error.message));
+          return reject();
+        }
+        log(chalk.green("Frames have been generated"));
+        resolve("Success");
+      }
+    );
+  });
+}
+
+// ACTUAL CODE STARTS HERE:
+
 try {
   let userResponse = await inquirer.prompt(prompts);
-  let videoData = userResponse["Video path"];
+  let videoPath = userResponse["Video path"];
+
+  const videoData = await new ffmpeg(videoPath);
+
+  await generateVideoFrames(videoData);
 } catch (err) {
   log(chalk.redBright(err.msg || "Invalid input"));
 }
