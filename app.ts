@@ -8,10 +8,12 @@ import inquirer from "inquirer";
 import ffmpeg from "ffmpeg";
 import fs from "fs-extra";
 import chalk from "chalk";
-
+import Jimp from "jimp";
 const log = console.log;
-const ORIGINAL_VIDEO_FRAMES_PATH = "original_video_frames";
+const ASCII_CHARS: string = "@%#*+=-:. ";
+const ORIGINAL_VIDEO_FRAMES_PATH: string = "original_video_frames";
 log(chalk.blueBright("Welcome to Video to ASCII Video!\n"));
+
 log(chalk.white("Note: Use relative paths... Example -> ./duck.mp4\n"));
 
 let prompts = [
@@ -48,7 +50,8 @@ async function generateVideoFrames(videoData) {
       ORIGINAL_VIDEO_FRAMES_PATH,
       {
         frame_rate: 60,
-        number: 300,
+        // number: 300,
+        number: 1,
         file_name: "frame_%t_%s",
       },
       function (error, files) {
@@ -57,7 +60,7 @@ async function generateVideoFrames(videoData) {
           return reject();
         }
         log(chalk.green("Frames have been generated"));
-        resolve("Success");
+        resolve(files);
       }
     );
   });
@@ -71,50 +74,41 @@ try {
 
   const videoData = await new ffmpeg(videoPath);
 
-  await generateVideoFrames(videoData);
+  const allGeneratedFiles = (await generateVideoFrames(videoData)) as string[];
+
+  allGeneratedFiles.forEach((file) => {
+    console.log(file);
+    Jimp.read(file)
+      .then((image) => {
+        image.resize(50, Jimp.AUTO);
+        let asciiArt = "";
+
+        for (let y = 0; y < image.getHeight(); y++) {
+          for (let x = 0; x < image.getWidth(); x++) {
+            const pixel = Jimp.intToRGBA(image.getPixelColor(x, y));
+            const brightness = (pixel.r + pixel.g + pixel.b) / 3;
+            const charIndex = Math.floor(
+              (brightness / 255) * (ASCII_CHARS.length - 1)
+            );
+            const char = ASCII_CHARS[charIndex];
+            asciiArt += char;
+          }
+          asciiArt += "\n";
+        }
+
+        console.log(asciiArt);
+      })
+      .catch((err) => {
+        log(chalk.redBright(err));
+      });
+  });
 } catch (err) {
   log(chalk.redBright(err.msg || "Invalid input"));
 }
 // try {
 // Clearing folders
-// fs.readdir("./video-frames", (err, files) => {
-//   if (err) throw err;
-
-//   for (const file of files) {
-//     fs.unlink(path.join("./video-frames", file), (err) => {
-//       if (err) throw err;
-//     });
-//   }
-// });
-
-// fs.readdir("./video-ascii-frames", (err, files) => {
-//   if (err) throw err;
-
-//   for (const file of files) {
-//     fs.unlink(path.join("./video-frames", file), (err) => {
-//       if (err) throw err;
-//     });
-//   }
-// });
 
 //   let promisesArray: Promise<string>[] = [];
-
-//   process.then(
-//     function (video) {
-//       video.fnExtractFrameToJPG(
-//         "./video-frames",
-//         {
-//           frame_rate: 0.2,
-//           number: 60,
-//           file_name: "my_frame_%t_%s",
-//         },
-//         function (error, files) {
-//           if (error) {
-//             console.log(error);
-//             return;
-//           }
-
-//           console.log("Frames have been generated");
 
 //           for (let i = 0; i < files.length; i++) {
 //             let file = files[i];
