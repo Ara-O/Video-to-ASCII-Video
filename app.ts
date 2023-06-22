@@ -9,9 +9,11 @@ import ffmpeg from "ffmpeg";
 import fs from "fs-extra";
 import chalk from "chalk";
 import Jimp from "jimp";
+
 const log = console.log;
-const ASCII_CHARS: string = "@%#*+=-:. ";
+const ASCII_CHARS: string = "@%0*+#-#  ";
 const ORIGINAL_VIDEO_FRAMES_PATH: string = "original_video_frames";
+const ASCII_TXT_REPRESENTATION_PATH = "ascii_video_frames";
 log(chalk.blueBright("Welcome to Video to ASCII Video!\n"));
 
 log(chalk.white("Note: Use relative paths... Example -> ./duck.mp4\n"));
@@ -51,7 +53,7 @@ async function generateVideoFrames(videoData) {
       {
         frame_rate: 60,
         // number: 300,
-        number: 1,
+        number: 10,
         file_name: "frame_%t_%s",
       },
       function (error, files) {
@@ -76,106 +78,67 @@ try {
 
   const allGeneratedFiles = (await generateVideoFrames(videoData)) as string[];
 
-  allGeneratedFiles.forEach((file) => {
-    console.log(file);
-    Jimp.read(file)
-      .then((image) => {
-        image.resize(50, Jimp.AUTO);
-        let asciiArt = "";
+  log(chalk.yellowBright("\nGenerating text files..."));
 
-        for (let y = 0; y < image.getHeight(); y++) {
-          for (let x = 0; x < image.getWidth(); x++) {
-            const pixel = Jimp.intToRGBA(image.getPixelColor(x, y));
-            const brightness = (pixel.r + pixel.g + pixel.b) / 3;
-            const charIndex = Math.floor(
-              (brightness / 255) * (ASCII_CHARS.length - 1)
-            );
-            const char = ASCII_CHARS[charIndex];
-            asciiArt += char;
-          }
-          asciiArt += "\n";
-        }
-
-        console.log(asciiArt);
-      })
-      .catch((err) => {
-        log(chalk.redBright(err));
-      });
+  fs.access(`${ASCII_TXT_REPRESENTATION_PATH}`, fs.constants.F_OK, (err) => {
+    if (err) {
+      fs.mkdirSync(ASCII_TXT_REPRESENTATION_PATH);
+    } else {
+      fs.emptyDirSync(ASCII_TXT_REPRESENTATION_PATH);
+    }
   });
+
+  let generateNecessaryFiles = allGeneratedFiles.map(async (file, index) => {
+    let imageData = await Jimp.read(file);
+    imageData.resize(50, Jimp.AUTO);
+    let asciiArt = "";
+    for (let y = 0; y < imageData.getHeight(); y++) {
+      for (let x = 0; x < imageData.getWidth(); x++) {
+        const pixel = Jimp.intToRGBA(imageData.getPixelColor(x, y));
+        const brightness = (pixel.r + pixel.g + pixel.b) / 3;
+        const charIndex = Math.floor(
+          (brightness / 255) * (ASCII_CHARS.length - 1)
+        );
+
+        const char = ASCII_CHARS[charIndex];
+
+        asciiArt += char;
+      }
+      asciiArt += "\n";
+    }
+
+    return fs.writeFile(
+      `${ASCII_TXT_REPRESENTATION_PATH}/frame-${index}.txt`,
+      asciiArt
+    );
+  });
+
+  await Promise.all(generateNecessaryFiles);
+  log(chalk.greenBright("Text files have been generated"));
+
+  const allTextFiles = fs.readdirSync(ASCII_TXT_REPRESENTATION_PATH);
+  let allFrames: string[] = [];
+  allTextFiles.forEach((file) => {
+    allFrames.push(
+      fs.readFileSync(`${ASCII_TXT_REPRESENTATION_PATH}/${file}`, "utf8")
+    );
+  });
+
+  let currentFrame = 0;
+  console.log(allFrames);
+
+  // function spinnerAnimation() {
+  //   let currentFrame = 0;
+
+  //   setInterval(() => {
+  //     process.stdout.write(`\r${allFrames[currentFrame]}  `);
+  //     currentFrame = (currentFrame + 1) % allFrames.length;
+  //   }, 40);
+  // }
+  // spinnerAnimation();
 } catch (err) {
-  log(chalk.redBright(err.msg || "Invalid input"));
+  log(chalk.redBright(err));
 }
-// try {
-// Clearing folders
-
-//   let promisesArray: Promise<string>[] = [];
-
-//           for (let i = 0; i < files.length; i++) {
-//             let file = files[i];
-//             console.log(`File ${i} - ${file}`);
-//             promisesArray.push(generateASCIITextFile(file));
-//           }
-
-//           Promise.all(promisesArray)
-//             .then((res) => {
-//               console.log(res);
-//               generateASCIIVideo();
-//             })
-//             .catch((err) => {
-//               console.log(err);
-//             });
-//         }
-//       );
-//     },
-//     function (err) {
-//       console.log("Error: " + err);
-//     }
-//   );
-// } catch (e: any) {
-//   console.log(e.code);
-//   console.log(e.msg);
-// }
-
-// function generateASCIITextFile(file: string): Promise<string> {
-//   return new Promise((resolve, reject) => {
-//     Image.load(`./${file}`).then((img) => {
-//       let resizedImg = img.resize({
-//         height: 70,
-//         preserveAspectRatio: true,
-//       });
-
-//       let videoFilePath = `./video-ascii-frames/${file
-//         .replace("./video-frames", "")
-//         .replace(".jpg", "")}.txt`;
-
-//       // console.log(resizedImg);
-//       for (let i = 0; i < resizedImg.data.length / 4; i++) {
-//         let index = 4 * i;
-//         let rVal = resizedImg.data[index + 1];
-//         let gVal = resizedImg.data[index + 2];
-//         let bVal = resizedImg.data[index + 3];
-//         let aVal = resizedImg.data[index + 4];
-
-//         let average = (rVal + gVal + bVal + aVal) / 4;
-//         if (average >= 235) {
-//           fs.appendFileSync(videoFilePath, ".");
-//         } else if (average >= 200) {
-//           fs.appendFileSync(videoFilePath, "@");
-//         } else {
-//           fs.appendFileSync(videoFilePath, "#");
-//         }
-
-//         if (i !== 0 && i % resizedImg.width === 0) {
-//           fs.appendFileSync(videoFilePath, "\r\n");
-//         }
-//       }
-
-//       resolve(videoFilePath);
-
-//       // resizedImg.save("test.png");
-//     });
-//   });
-// }
 
 // function generateASCIIVideo() {
 //   //Reading file directory
